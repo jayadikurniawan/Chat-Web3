@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import ChatAbi from "./ChatABI.json";
+import "./App.css";
 
 const contractAddress = "0x120C5a061b7653EAFa866f5f1e1c743d29a20330";
 
@@ -31,6 +32,13 @@ function App() {
       const signer = provider.getSigner();
       const address = await signer.getAddress();
       setWallet(address);
+
+      const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
+      const currentNickname = await contract.usernames(address);
+      if (currentNickname) {
+        setNickname(currentNickname);
+      }
+
       fetchMessages();
       alert(`Wallet berhasil terkoneksi: ${address}`);
     } catch (error) {
@@ -38,15 +46,6 @@ function App() {
       alert("Gagal konek wallet!");
     }
   }
-
-  // async function registerUsername() {
-  //   if (!nickname) return alert("Nickname tidak boleh kosong!");
-  //   const provider = new ethers.providers.Web3Provider(window.ethereum);
-  //   const signer = await provider.getSigner();
-  //   const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
-  //   await contract.registerUsername(nickname);
-  //   alert(`Nickname "${nickname}" berhasil didaftarkan!`);
-  // }
 
   async function registerUsername() {
     if (!nickname) return alert("Nickname tidak boleh kosong!");
@@ -70,7 +69,6 @@ function App() {
       alert("Gagal daftar nickname!");
     }
   }
-  
 
   async function sendMessage() {
     if (!message) return alert("Pesan tidak boleh kosong!");
@@ -104,24 +102,30 @@ function App() {
   return (
     <div>
       <h1>Web3 Chat App 🚀</h1>
-
+  
       <button onClick={connectWallet}>
-        {wallet ? `Connected: ${wallet.slice(0, 6)}...${wallet.slice(-4)}` : "Connect Wallet"}
+        {wallet ? `Connected: ${wallet.slice(0, 42)}` : "Connect Wallet"}
       </button>
-
-      <input
-        placeholder="Enter Nickname"
-        onChange={(e) => setNickname(e.target.value)}
-      />
-      <button onClick={registerUsername}>Register</button>
-
+  
+      {nickname && <p>Your Nickname: {nickname}</p>}
+  
+      {!nickname && (
+        <>
+          <input
+            placeholder="Enter Nickname"
+            onChange={(e) => setNickname(e.target.value)}
+          />
+          <button onClick={registerUsername}>Register</button>
+        </>
+      )}
+  
       <input
         placeholder="Enter Message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />
       <button onClick={sendMessage}>Send</button>
-
+  
       <h2>Messages</h2>
       {messages.map((msg, index) => (
         <div key={index}>
@@ -131,7 +135,7 @@ function App() {
         </div>
       ))}
     </div>
-  );
+  );  
 }
 
 export default App;

@@ -1,24 +1,64 @@
-.App {
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background-color: #1e1e2e; /* Dark Background */
+  color: #e0e0e0;           /* Light Text */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 20px;
   text-align: center;
-  margin-top: 50px;
 }
 
-textarea {
-  width: 300px;
-  height: 100px;
-  margin-bottom: 10px;
-  padding: 10px;
-  font-size: 16px;
+h1 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  color: #00df9a; /* Warna Hijau ala ChatGPT */
 }
 
 button {
-  padding: 10px;
-  background-color: #4CAF50;
-  color: white;
+  background: #00df9a;
   border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin: 10px;
   cursor: pointer;
+  transition: background 0.3s ease;
+  font-weight: bold;
 }
 
 button:hover {
-  background-color: #45a049;
+  background: #00b978; /* Warna Hijau yang lebih gelap saat hover */
+}
+
+input {
+  width: 300px;
+  padding: 10px;
+  margin: 10px;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #2b2b40;
+  color: #e0e0e0;
+  outline: none;
+}
+
+input::placeholder {
+  color: #a0a0a0;
+}
+
+div {
+  margin-top: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+div p {
+  margin: 0;
+  font-size: 14px;
+}
+
+div p span {
+  color: #00df9a;
+  font-weight: bold;
 }
