@@ -1,87 +1,135 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import "./App.css";
+import ChatAbi from "./ChatABI.json";
 
-const contractAddress = "0x4c1821aF28a7509865458f85CDD5C20e03beE9Aa"; // Ganti sama contract address lu
-const ChatABI = [
-  "function sendMessage(string _text) public",
-  "function getAllMessages() public view returns (tuple(address sender, string text)[] memory)"
-];
+const contractAddress = "0x120C5a061b7653EAFa866f5f1e1c743d29a20330";
 
 function App() {
-  const [account, setAccount] = useState(null);
-  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-
-  // Connect Wallet
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      setAccount(accounts[0]);
-      console.log("Wallet connected:", accounts[0]);
-    } else {
-      alert("MetaMask belum terinstall bro!");
-    }
-  };
-
-  // Fetch Messages
-  const fetchMessages = async () => {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const contract = new ethers.Contract(contractAddress, ChatABI, provider);
-
-    const msgs = await contract.getAllMessages();
-    console.log("Pesan dari blockchain:", msgs);
-
-    setMessages(msgs.map((msg) => msg.text));
-  };
-
-  // Send Message
-  const sendMessage = async () => {
-    if (!message) return alert("Pesan gak boleh kosong bro!");
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(contractAddress, ChatABI, signer);
-
-    const tx = await contract.sendMessage(message);
-    await tx.wait();
-    alert("Pesan berhasil terkirim 🔥");
-
-    setMessage("");
-    fetchMessages(); // Refresh pesan setelah kirim
-  };
+  const [message, setMessage] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [wallet, setWallet] = useState("");
 
   useEffect(() => {
-    connectWallet();
-    fetchMessages(); // Auto fetch pas web kebuka
-  }, []);
+    const interval = setInterval(() => {
+      if (wallet) {
+        fetchMessages();
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [wallet]);
+
+  async function connectWallet() {
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
+
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
+      setWallet(address);
+      fetchMessages();
+      alert(`Wallet berhasil terkoneksi: ${address}`);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal konek wallet!");
+    }
+  }
+
+  // async function registerUsername() {
+  //   if (!nickname) return alert("Nickname tidak boleh kosong!");
+  //   const provider = new ethers.providers.Web3Provider(window.ethereum);
+  //   const signer = await provider.getSigner();
+  //   const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
+  //   await contract.registerUsername(nickname);
+  //   alert(`Nickname "${nickname}" berhasil didaftarkan!`);
+  // }
+
+  async function registerUsername() {
+    if (!nickname) return alert("Nickname tidak boleh kosong!");
+    
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
+  
+    const currentNickname = await contract.usernames(await signer.getAddress());
+  
+    if (currentNickname) {
+      return alert(`Kamu sudah terdaftar dengan nickname: "${currentNickname}"`);
+    }
+  
+    try {
+      const tx = await contract.registerUsername(nickname);
+      await tx.wait();
+      alert(`Nickname "${nickname}" berhasil didaftarkan!`);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal daftar nickname!");
+    }
+  }
+  
+
+  async function sendMessage() {
+    if (!message) return alert("Pesan tidak boleh kosong!");
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
+    const tx = await contract.sendMessage(message);
+    await tx.wait();
+    setMessage("");
+    fetchMessages();
+  }
+
+  async function fetchMessages() {
+    if (!window.ethereum || !wallet) return;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    if (!signer) return;
+    const contract = new ethers.Contract(contractAddress, ChatAbi, signer);
+    const allMessages = await contract.getAllMessages();
+
+    const messagesWithNicknames = await Promise.all(
+      allMessages.map(async (msg) => {
+        const nickname = await contract.usernames(msg.sender);
+        return { ...msg, nickname };
+      })
+    );
+
+    setMessages(messagesWithNicknames);
+  }
 
   return (
-    <div className="App">
-      <h1 onClick={connectWallet} style={{ cursor: "pointer" }}>
-        🔗 Web3 Chat (Click to Connect Wallet)
-      </h1>
+    <div>
+      <h1>Web3 Chat App 🚀</h1>
 
-      {account ? (
-        <>
-          <p>Wallet Terkoneksi: {account}</p>
+      <button onClick={connectWallet}>
+        {wallet ? `Connected: ${wallet.slice(0, 6)}...${wallet.slice(-4)}` : "Connect Wallet"}
+      </button>
 
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Tulis pesanmu disini..."
-          ></textarea>
-          <button onClick={sendMessage}>Kirim Pesan</button>
+      <input
+        placeholder="Enter Nickname"
+        onChange={(e) => setNickname(e.target.value)}
+      />
+      <button onClick={registerUsername}>Register</button>
 
-          <h2>💬 Pesan Terkirim:</h2>
-          {messages.map((msg, index) => (
-            <p key={index}>🔥 {msg}</p>
-          ))}
-        </>
-      ) : (
-        <p>Klik di atas buat konek wallet 🔗</p>
-      )}
+      <input
+        placeholder="Enter Message"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+      <button onClick={sendMessage}>Send</button>
+
+      <h2>Messages</h2>
+      {messages.map((msg, index) => (
+        <div key={index}>
+          <p>
+            {msg.sender} [{msg.nickname ? msg.nickname : "Unknown"}] : {msg.text}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
